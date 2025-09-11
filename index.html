@@ -7,20 +7,23 @@
   body { font-family: Arial, sans-serif; text-align: center; background: #f0f0f0; }
   #controls { margin: 20px; }
   select, label { font-size: 16px; margin: 5px; }
-  #wheelCanvas { margin: 20px auto; display: block; background: white; border-radius: 50%; border: 4px solid #333; }
-  
-  /* Spin button styling */
+  #wheelContainer { position: relative; display: inline-block; }
+  #wheelCanvas { display: block; background: white; border-radius: 50%; border: 4px solid #333; }
+
+  /* Spin button positioned at bottom center of canvas */
   #spinButton {
+    position: absolute;
+    bottom: -40px; /* adjust vertical offset */
+    left: 50%;
+    transform: translateX(-50%);
     font-size: 20px;       /* larger text */
     padding: 15px 40px;    /* taller and wider */
-    margin-top: -80px;     /* lift it up over the bottom of canvas */
     background-color: #ff4444;
     color: white;
     border: none;
     border-radius: 10px;
     cursor: pointer;
   }
-
   #spinButton:hover {
     background-color: #ff6666;
   }
@@ -45,14 +48,15 @@
   </div>
 </div>
 
-<canvas id="wheelCanvas" width="500" height="500"></canvas>
-<!-- Spin button at bottom center of canvas -->
-<button id="spinButton">Spin</button>
+<div id="wheelContainer">
+  <canvas id="wheelCanvas" width="500" height="500"></canvas>
+  <button id="spinButton">Spin</button>
+</div>
 
 <script>
 const groups = {};
 let currentNames = [];
-let fontSize = 16; // starting font size
+let fontSize = 16;
 let currentRotation = 0;
 let spinning = false;
 
@@ -144,16 +148,16 @@ document.getElementById("spinButton").addEventListener("click", () => {
   if (spinning || currentNames.length === 0) return;
   spinning = true;
 
-  const spins = 5 + Math.random() * 3; // random rotations
+  const spins = 5 + Math.random() * 3;
   const targetRotation = currentRotation + spins * 2 * Math.PI;
-  const duration = 4000; // slower spin
+  const duration = 4000;
   const startRotation = currentRotation;
   const startTime = performance.now();
 
   function animate(now) {
     const t = (now - startTime) / duration;
     if (t < 1) {
-      const ease = 1 - Math.pow(1 - t, 3); // cubic ease out
+      const ease = 1 - Math.pow(1 - t, 3);
       currentRotation = startRotation + (targetRotation - startRotation) * ease;
       drawWheel(currentRotation);
       requestAnimationFrame(animate);
