@@ -7,8 +7,8 @@
   body { font-family: Arial, sans-serif; text-align: center; background: #f0f0f0; }
   #wheelCanvas { margin: 20px auto; display: block; background: white; border-radius: 50%; border: 4px solid #333; }
   #controls { margin: 20px; }
-  select, button, label { font-size: 16px; margin: 5px; }
-  #result { font-size: 24px; margin-top: 15px; font-weight: bold; }
+  select, button, label { font-size: 18px; margin: 5px; }
+  #result { font-size: 36px; margin-top: 15px; font-weight: bold; }
   #repeatToggle { position: absolute; top: 10px; right: 10px; }
 </style>
 </head>
@@ -143,7 +143,7 @@ function spinWheel() {
   const spins = 5; // full rotations
   const targetRotation = spins * 2 * Math.PI + selectedIndex * angleStep + angleStep / 2;
 
-  const duration = 4000; // spin time in ms
+  const duration = 2500; // spin time in ms
   const start = performance.now();
 
   function animate(now) {
@@ -171,3 +171,4 @@ init();
 </script>
 </body>
 </html>
+
