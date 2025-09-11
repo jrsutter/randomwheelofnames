@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Name Picker Wheel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f0f0f0;
+    }
+    #wheelCanvas {
+      margin: 20px auto;
+      display: block;
+      background: white;
+      border-radius: 50%;
+      border: 4px solid #333;
+    }
+    #controls {
+      margin: 20px;
+    }
+    select, button, label {
+      font-size: 16px;
+      margin: 5px;
+    }
+    #result {
+      font-size: 24px;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    #repeatToggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Random Name Picker Wheel</h1>
+
+  <div id="controls">
+    <select id="groupSelect"></select>
+    <button id="spinButton">Spin</button>
+    <label id="repeatToggle">
+      <input type="checkbox" id="allowRepeats"> Allow repeats
+    </label>
+  </div>
+
+  <canvas id="wheelCanvas" width="500" height="500"></canvas>
+  <div id="result"></div>
+
+  <script>
+    const groups = {};
+    let currentNames = [];
+    let usedNames = [];
+    let spinning = false;
+
+    const groupSelect = document.getElementById("groupSelect");
+    const wheelCanvas = document.getElementById("wheelCanvas");
+    const ctx = wheelCanvas.getContext("2d");
+    const resultDiv = document.getElementById("result");
+    const spinButton = document.getElementById("spinButton");
+    const allowRepeats = document.getElementById("allowRepeats");
+
+    // 🔹 Map dropdown labels to text files
+    const textFiles = {
+      "Red 1": "red1.txt",
+      "Red 3": "red3.txt",
+      "Red 4": "red4.txt",
+      "Green 5": "green5.txt",
+      "Green 6": "green6.txt",
+      "Green 7": "green7.txt"
+    };
+
+    async function loadText(file) {
+      const res = await fetch(file);
+      const text = await res.text();
+      return text.split(/\r?\n/).map(n => n.trim()).filter(n => n.length > 0);
+    }
+
+    async function init() {
+      for (const [name, file] of Object.entries(textFiles)) {
+        groups[name] = await loadText(file);
+      }
+      updateGroupSelect();
+    }
+
+    function updateGroupSelect() {
+      groupSelect.innerHTML = "";
+      for (const group in groups) {
+        const option = document.createElement("option");
+        option.value = group;
+        option.textContent = group;
+        groupSelect.appendChild(option);
+      }
+      loadGroup(groupSelect.value);
+    }
+
+    groupSelect.addEventListener("change", () => loadGroup(groupSelect.value));
+
+    function loadGroup(groupName) {
+      currentNames = [...groups[groupName]];
+      usedNames = [];
+      drawWheel();
+    }
+
+    function drawWheel() {
+      ctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
+      const numSlices = currentNames.length;
+      if (numSlices === 0) return;
+
+      const angleStep = (2 * Math.PI) / numSlices;
+
+      currentNames.forEach((name, i) => {
+        ctx.beginPath();
+        ctx.moveTo(250, 250);
+        ctx.fillStyle = `hsl(${(i * 360) / numSlices}, 70%, 60%)`;
+        ctx.arc(250, 250, 250, i * angleStep, (i + 1) * angleStep);
+        ctx.fill();
+        ctx.save();
+        ctx.translate(250, 250);
+        ctx.rotate(i * angleStep + angleStep / 2);
+        ctx.fillStyle = "black";
+        ctx.textAlign = "right";
+        ctx.font = "16px Arial";
+        ctx.fillText(name, 230, 5);
+        ctx.restore();
+      });
+
+      // Pointer
+      ctx.beginPath();
+      ctx.moveTo(250, 0);
+      ctx.lineTo(240, 20);
+      ctx.lineTo(260, 20);
+      ctx.fillStyle = "red";
+      ctx.fill();
+    }
+
+    spinButton.addEventListener("click", spinWheel);
+
+    function spinWheel() {
+      if (spinning || currentNames.length === 0) return;
+      spinning = true;
+
+      let selectedName;
+      if (allowRepeats.checked) {
+        selectedName = currentNames[Math.floor(Math.random() * currentNames.length)];
+      } else {
+        const available = currentNames.filter(n => !usedNames.includes(n));
+        if (available.length === 0) {
+          usedNames = [];
+          resultDiv.textContent = "All names used. Resetting...";
+          setTimeout(() => spinWheel(), 1500);
+          spinning = false;
+          return;
+        }
+        selectedName = available[Math.floor(Math.random() * available.length)];
+        usedNames.push(selectedName);
+      }
+
+      // Spin animation
+      let angle = 0;
+      const spinTime = 3000;
+      const endAngle = Math.random() * 2 * Math.PI;
+      const start = performance.now();
+
+      function animate(now) {
+        const progress = (now - start) / spinTime;
+        if (progress < 1) {
+          angle = progress * (10 * Math.PI) + endAngle;
+          ctx.save();
+          ctx.translate(250, 250);
+          ctx.rotate(angle);
+          ctx.translate(-250, -250);
+          drawWheel();
+          ctx.restore();
+          requestAnimationFrame(animate);
+        } else {
+          resultDiv.textContent = "Selected: " + selectedName;
+          spinning = false;
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+    init();
+  </script>
+</body>
+</html>
