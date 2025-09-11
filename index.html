@@ -36,154 +36,162 @@
   </style>
 </head>
 <body>
-  <h1>Random Name Picker Wheel</h1>
+<h1>Random Name Picker Wheel</h1>
 
-  <div id="controls">
-    <select id="groupSelect"></select>
-    <button id="spinButton">Spin</button>
-    <label id="repeatToggle">
-      <input type="checkbox" id="allowRepeats"> Allow repeats
-    </label>
-  </div>
+<div id="controls">
+  <select id="groupSelect"></select>
+  <button id="spinButton">Spin</button>
+  <label id="repeatToggle">
+    <input type="checkbox" id="allowRepeats"> Allow repeats
+  </label>
+</div>
 
-  <canvas id="wheelCanvas" width="500" height="500"></canvas>
-  <div id="result"></div>
+<canvas id="wheelCanvas" width="500" height="500"></canvas>
+<div id="result"></div>
 
-  <script>
-    const groups = {};
-    let currentNames = [];
-    let usedNames = [];
-    let spinning = false;
+<script>
+const groups = {};
+let currentNames = [];
+let usedNames = [];
+let spinning = false;
 
-    const groupSelect = document.getElementById("groupSelect");
-    const wheelCanvas = document.getElementById("wheelCanvas");
-    const ctx = wheelCanvas.getContext("2d");
-    const resultDiv = document.getElementById("result");
-    const spinButton = document.getElementById("spinButton");
-    const allowRepeats = document.getElementById("allowRepeats");
+const groupSelect = document.getElementById("groupSelect");
+const wheelCanvas = document.getElementById("wheelCanvas");
+const ctx = wheelCanvas.getContext("2d");
+const resultDiv = document.getElementById("result");
+const spinButton = document.getElementById("spinButton");
+const allowRepeats = document.getElementById("allowRepeats");
 
-    const textFiles = {
-      "Red 1": "red1.txt",
-      "Red 3": "red3.txt",
-      "Red 4": "red4.txt",
-      "Green 5": "green5.txt",
-      "Green 6": "green6.txt",
-      "Green 7": "green7.txt"
-    };
+// Text files
+const textFiles = {
+  "Red 1": "red1.txt",
+  "Red 3": "red3.txt",
+  "Red 4": "red4.txt",
+  "Green 5": "green5.txt",
+  "Green 6": "green6.txt",
+  "Green 7": "green7.txt"
+};
 
-    async function loadText(file) {
-      const res = await fetch(file);
-      const text = await res.text();
-      return text.split(/\r?\n/).map(n => n.trim()).filter(n => n.length > 0);
-    }
+async function loadText(file) {
+  const res = await fetch(file);
+  const text = await res.text();
+  return text.split(/\r?\n/).map(n => n.trim()).filter(n => n.length > 0);
+}
 
-    async function init() {
-      for (const [name, file] of Object.entries(textFiles)) {
-        groups[name] = await loadText(file);
-      }
-      updateGroupSelect();
-    }
+async function init() {
+  for (const [name, file] of Object.entries(textFiles)) {
+    groups[name] = await loadText(file);
+  }
+  updateGroupSelect();
+}
 
-    function updateGroupSelect() {
-      groupSelect.innerHTML = "";
-      for (const group in groups) {
-        const option = document.createElement("option");
-        option.value = group;
-        option.textContent = group;
-        groupSelect.appendChild(option);
-      }
-      loadGroup(groupSelect.value);
-    }
+function updateGroupSelect() {
+  groupSelect.innerHTML = "";
+  for (const group in groups) {
+    const option = document.createElement("option");
+    option.value = group;
+    option.textContent = group;
+    groupSelect.appendChild(option);
+  }
+  loadGroup(groupSelect.value);
+}
 
-    groupSelect.addEventListener("change", () => loadGroup(groupSelect.value));
+groupSelect.addEventListener("change", () => loadGroup(groupSelect.value));
 
-    function loadGroup(groupName) {
-      currentNames = [...groups[groupName]];
+function loadGroup(groupName) {
+  currentNames = [...groups[groupName]];
+  usedNames = [];
+  drawWheel(0);
+}
+
+function drawWheel(rotation = 0) {
+  ctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
+  const numSlices = currentNames.length;
+  if (numSlices === 0) return;
+  const angleStep = (2 * Math.PI) / numSlices;
+
+  // Draw wheel rotated
+  ctx.save();
+  ctx.translate(250, 250);
+  ctx.rotate(rotation);
+  currentNames.forEach((name, i) => {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.fillStyle = `hsl(${(i * 360) / numSlices}, 70%, 60%)`;
+    ctx.arc(0, 0, 250, i * angleStep, (i + 1) * angleStep);
+    ctx.fill();
+
+    // Draw name
+    ctx.save();
+    ctx.rotate(i * angleStep + angleStep / 2);
+    ctx.fillStyle = "black";
+    ctx.textAlign = "right";
+    ctx.font = "16px Arial";
+    ctx.fillText(name, 230, 5);
+    ctx.restore();
+  });
+  ctx.restore();
+
+  // Draw pointer (fixed at top)
+  ctx.beginPath();
+  ctx.moveTo(250, 0);
+  ctx.lineTo(240, 20);
+  ctx.lineTo(260, 20);
+  ctx.fillStyle = "red";
+  ctx.fill();
+}
+
+spinButton.addEventListener("click", spinWheel);
+
+function spinWheel() {
+  if (spinning || currentNames.length === 0) return;
+  spinning = true;
+
+  const numSlices = currentNames.length;
+  const angleStep = (2 * Math.PI) / numSlices;
+
+  // Determine final rotation randomly for non-repeating or repeating
+  let selectedIndex;
+  if (allowRepeats.checked) {
+    selectedIndex = Math.floor(Math.random() * numSlices);
+  } else {
+    const available = currentNames.map((n,i)=>i).filter(i => !usedNames.includes(i));
+    if (available.length === 0) {
       usedNames = [];
-      drawWheel(0);
+      resultDiv.textContent = "All names used. Resetting...";
+      setTimeout(() => spinWheel(), 1500);
+      spinning = false;
+      return;
     }
+    selectedIndex = available[Math.floor(Math.random() * available.length)];
+    usedNames.push(selectedIndex);
+  }
 
-    function drawWheel(rotation = 0) {
-      ctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
-      const numSlices = currentNames.length;
-      if (numSlices === 0) return;
-      const angleStep = (2 * Math.PI) / numSlices;
+  const spins = 5; // how many full rotations before stopping
+  const finalRotation = spins * 2 * Math.PI + selectedIndex * angleStep + angleStep / 2;
 
-      // Draw wheel rotated
-      ctx.save();
-      ctx.translate(250, 250);
-      ctx.rotate(rotation);
-      currentNames.forEach((name, i) => {
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.fillStyle = `hsl(${(i * 360) / numSlices}, 70%, 60%)`;
-        ctx.arc(0, 0, 250, i * angleStep, (i + 1) * angleStep);
-        ctx.fill();
+  const duration = 4000; // 4 seconds
+  const start = performance.now();
 
-        // Draw name
-        ctx.save();
-        ctx.rotate(i * angleStep + angleStep / 2);
-        ctx.fillStyle = "black";
-        ctx.textAlign = "right";
-        ctx.font = "16px Arial";
-        ctx.fillText(name, 230, 5);
-        ctx.restore();
-      });
-      ctx.restore();
-
-      // Draw pointer (fixed)
-      ctx.beginPath();
-      ctx.moveTo(250, 0);
-      ctx.lineTo(240, 20);
-      ctx.lineTo(260, 20);
-      ctx.fillStyle = "red";
-      ctx.fill();
-    }
-
-    spinButton.addEventListener("click", spinWheel);
-
-    function spinWheel() {
-      if (spinning || currentNames.length === 0) return;
-      spinning = true;
-
-      let selectedName;
-      if (allowRepeats.checked) {
-        selectedName = currentNames[Math.floor(Math.random() * currentNames.length)];
-      } else {
-        const available = currentNames.filter(n => !usedNames.includes(n));
-        if (available.length === 0) {
-          usedNames = [];
-          resultDiv.textContent = "All names used. Resetting...";
-          setTimeout(() => spinWheel(), 1500);
-          spinning = false;
-          return;
-        }
-        selectedName = available[Math.floor(Math.random() * available.length)];
-        usedNames.push(selectedName);
-      }
-
-      // Spin animation
-      let angle = 0;
-      const spinTime = 3000;
-      const endAngle = Math.random() * 2 * Math.PI;
-      const start = performance.now();
-
-      function animate(now) {
-        const progress = (now - start) / spinTime;
-        if (progress < 1) {
-          angle = progress * (10 * Math.PI) + endAngle;
-          drawWheel(angle);
-          requestAnimationFrame(animate);
-        } else {
-          drawWheel(endAngle);
-          resultDiv.textContent = "Selected: " + selectedName;
-          spinning = false;
-        }
-      }
+  function animate(now) {
+    const t = (now - start) / duration;
+    if (t < 1) {
+      // Ease out
+      const ease = 1 - Math.pow(1 - t, 3);
+      const rotation = finalRotation * ease;
+      drawWheel(rotation);
       requestAnimationFrame(animate);
+    } else {
+      drawWheel(finalRotation);
+      resultDiv.textContent = "Selected: " + currentNames[selectedIndex];
+      spinning = false;
     }
+  }
 
-    init();
-  </script>
+  requestAnimationFrame(animate);
+}
+
+init();
+</script>
 </body>
 </html>
