@@ -8,6 +8,7 @@
   #controls { margin: 20px; }
   select, button, label { font-size: 16px; margin: 5px; }
   #wheelCanvas { margin: 20px auto; display: block; background: white; border-radius: 50%; border: 4px solid #333; }
+  textarea { margin-top: 10px; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -25,6 +26,11 @@
 
 <canvas id="wheelCanvas" width="500" height="500"></canvas>
 
+<div>
+  <label for="removedNames">Removed Names (10% chance):</label><br>
+  <textarea id="removedNames" rows="4" cols="40" readonly></textarea>
+</div>
+
 <script>
 const groups = {};
 let currentNames = [];
@@ -35,6 +41,7 @@ let spinning = false;
 const groupSelect = document.getElementById("groupSelect");
 const wheelCanvas = document.getElementById("wheelCanvas");
 const ctx = wheelCanvas.getContext("2d");
+const removedNamesBox = document.getElementById("removedNames");
 
 const textFiles = {
   "Red 1": "red1.txt",
@@ -115,26 +122,45 @@ function drawWheel(rotation = 0) {
   ctx.fill();
 }
 
-// Spin button: animate wheel only (no selection)
+// Compute the index under top arrow
+function getTopIndex() {
+  if (currentNames.length === 0) return null;
+  const angleStep = (2 * Math.PI) / currentNames.length;
+  const normalized = currentRotation % (2 * Math.PI);
+  const topIndex = Math.floor((2 * Math.PI - normalized) / angleStep) % currentNames.length;
+  return topIndex;
+}
+
+// Spin button: animate wheel with slow down and 10% removal
 document.getElementById("spinButton").addEventListener("click", () => {
   if (spinning || currentNames.length === 0) return;
   spinning = true;
 
-  const spins = 5 + Math.random() * 3; // random full rotations
+  const spins = 5 + Math.random() * 3; // random rotations
   const targetRotation = currentRotation + spins * 2 * Math.PI;
-  const duration = 3000;
-  const start = performance.now();
+  const duration = 4000; // slower spin duration
+  const startRotation = currentRotation;
+  const startTime = performance.now();
 
   function animate(now) {
-    const t = (now - start) / duration;
+    const t = (now - startTime) / duration;
     if (t < 1) {
       const ease = 1 - Math.pow(1 - t, 3); // cubic ease out
-      currentRotation = currentRotation + (targetRotation - currentRotation) * ease;
+      currentRotation = startRotation + (targetRotation - startRotation) * ease;
       drawWheel(currentRotation);
       requestAnimationFrame(animate);
     } else {
       currentRotation = targetRotation;
       drawWheel(currentRotation);
+
+      // 10% chance to remove top name
+      const topIndex = getTopIndex();
+      if (topIndex !== null && Math.random() <= 0.1) {
+        const removedName = currentNames.splice(topIndex, 1)[0];
+        removedNamesBox.value += removedName + "\n";
+      }
+
+      drawWheel(currentRotation); // redraw after removal
       spinning = false;
     }
   }
