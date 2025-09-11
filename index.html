@@ -8,37 +8,30 @@
   #wheelCanvas { margin: 20px auto; display: block; background: white; border-radius: 50%; border: 4px solid #333; }
   #controls { margin: 20px; }
   select, button, label { font-size: 16px; margin: 5px; }
-  #result { font-size: 24px; margin-top: 15px; font-weight: bold; }
-  #repeatToggle { position: absolute; top: 10px; right: 10px; }
+  #fontControls { margin-top: 10px; }
 </style>
 </head>
 <body>
-<h1>Random Name Picker Wheel</h1>
+<h1>Name Picker Wheel</h1>
 
 <div id="controls">
   <select id="groupSelect"></select>
-  <button id="spinButton">Spin</button>
-  <label id="repeatToggle">
-    <input type="checkbox" id="allowRepeats"> Allow repeats
-  </label>
+  <div id="fontControls">
+    <button id="increaseFont">Increase Font</button>
+    <button id="decreaseFont">Decrease Font</button>
+  </div>
 </div>
 
 <canvas id="wheelCanvas" width="500" height="500"></canvas>
-<div id="result"></div>
 
 <script>
 const groups = {};
 let currentNames = [];
-let usedIndices = [];
-let spinning = false;
-let currentRotation = 0;
+let fontSize = 16; // starting font size
 
 const groupSelect = document.getElementById("groupSelect");
 const wheelCanvas = document.getElementById("wheelCanvas");
 const ctx = wheelCanvas.getContext("2d");
-const resultDiv = document.getElementById("result");
-const spinButton = document.getElementById("spinButton");
-const allowRepeats = document.getElementById("allowRepeats");
 
 const textFiles = {
   "Red 1": "red1.txt",
@@ -79,22 +72,19 @@ groupSelect.addEventListener("change", () => loadGroup(groupSelect.value));
 
 function loadGroup(groupName) {
   currentNames = [...groups[groupName]];
-  usedIndices = [];
-  currentRotation = 0;
-  drawWheel(currentRotation);
+  drawWheel();
 }
 
-// Draw wheel and arrow
-function drawWheel(rotation = 0) {
+// Draw wheel
+function drawWheel() {
   ctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
   const numSlices = currentNames.length;
   if (numSlices === 0) return;
   const angleStep = (2 * Math.PI) / numSlices;
 
-  // Draw wheel rotated
+  // Draw wheel
   ctx.save();
   ctx.translate(250, 250);
-  ctx.rotate(rotation);
   currentNames.forEach((name, i) => {
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -107,77 +97,30 @@ function drawWheel(rotation = 0) {
     ctx.rotate(i * angleStep + angleStep / 2);
     ctx.fillStyle = "black";
     ctx.textAlign = "right";
-    ctx.font = "16px Arial";
+    ctx.font = `${fontSize}px Arial`;
     ctx.fillText(name, 230, 5);
     ctx.restore();
   });
   ctx.restore();
 
-  // Draw arrow 5° CCW from rightmost edge, pointing to center
-  const arrowAngle = (360 - 5) * Math.PI / 180; // 5° CCW from horizontal
-  const wheelRadius = 250;
-  const baseLength = 40; // arrow width outside wheel
-  const tipX = 250 + Math.cos(arrowAngle) * wheelRadius;
-  const tipY = 250 + Math.sin(arrowAngle) * wheelRadius;
-  const leftX = tipX + Math.cos(arrowAngle + Math.PI/2) * baseLength;
-  const leftY = tipY + Math.sin(arrowAngle + Math.PI/2) * baseLength;
-  const rightX = tipX + Math.cos(arrowAngle - Math.PI/2) * baseLength;
-  const rightY = tipY + Math.sin(arrowAngle - Math.PI/2) * baseLength;
-
+  // Draw fixed arrow at top
   ctx.beginPath();
-  ctx.moveTo(tipX, tipY);
-  ctx.lineTo(leftX, leftY);
-  ctx.lineTo(rightX, rightY);
+  ctx.moveTo(250, 0);
+  ctx.lineTo(240, 20);
+  ctx.lineTo(260, 20);
   ctx.fillStyle = "red";
   ctx.fill();
 }
 
-// Spin the wheel
-spinButton.addEventListener("click", spinWheel);
-
-function spinWheel() {
-  if (spinning || currentNames.length === 0) return;
-  spinning = true;
-
-  const numSlices = currentNames.length;
-  const angleStep = (2 * Math.PI) / numSlices;
-
-  // Determine available indices
-  let availableIndices = allowRepeats.checked ? Array.from(Array(numSlices).keys()) : Array.from(Array(numSlices).keys()).filter(i => !usedIndices.includes(i));
-  if (availableIndices.length === 0) { usedIndices = []; availableIndices = Array.from(Array(numSlices).keys()); }
-
-  // Randomly pick target slice
-  const targetIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
-  if (!allowRepeats.checked) usedIndices.push(targetIndex);
-
-  // Total rotation = multiple spins + target slice aligned with pointer
-  const spins = 5;
-  const arrowAngle = (360 - 5) * Math.PI / 180; // same angle as drawn
-  const targetRotation = spins * 2 * Math.PI + targetIndex * angleStep - arrowAngle; // align slice under arrow
-
-  const duration = 4000;
-  const start = performance.now();
-
-  function animate(now) {
-    const t = (now - start) / duration;
-    if (t < 1) {
-      const ease = 1 - Math.pow(1 - t, 3); // cubic ease out
-      currentRotation = targetRotation * ease;
-      drawWheel(currentRotation);
-      requestAnimationFrame(animate);
-    } else {
-      currentRotation = targetRotation;
-      drawWheel(currentRotation);
-      // Compute which slice is at pointer
-      const normalized = (currentRotation + arrowAngle) % (2 * Math.PI);
-      const topIndex = Math.floor((2 * Math.PI - normalized) / angleStep) % currentNames.length;
-      resultDiv.textContent = "Selected: " + currentNames[topIndex];
-      spinning = false;
-    }
-  }
-
-  requestAnimationFrame(animate);
-}
+// Font size buttons
+document.getElementById("increaseFont").addEventListener("click", () => {
+  fontSize += 2;
+  drawWheel();
+});
+document.getElementById("decreaseFont").addEventListener("click", () => {
+  fontSize = Math.max(8, fontSize - 2);
+  drawWheel();
+});
 
 init();
 </script>
