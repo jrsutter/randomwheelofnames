@@ -6,9 +6,29 @@
 <style>
   body { font-family: Arial, sans-serif; text-align: center; background: #f0f0f0; }
   #controls { margin: 20px; }
-  select, button, label { font-size: 16px; margin: 5px; }
+  select, label { font-size: 16px; margin: 5px; }
   #wheelCanvas { margin: 20px auto; display: block; background: white; border-radius: 50%; border: 4px solid #333; }
-  textarea { margin-top: 10px; font-size: 14px; }
+  
+  /* Spin button styling */
+  #spinButton {
+    font-size: 20px;       /* larger text */
+    padding: 15px 40px;    /* taller and wider */
+    margin-top: -80px;     /* lift it up over the bottom of canvas */
+    background-color: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+
+  #spinButton:hover {
+    background-color: #ff6666;
+  }
+
+  #fontControls {
+    margin-top: 10px;
+  }
+  button { font-size: 16px; margin: 5px; padding: 8px 16px; border-radius: 5px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -16,20 +36,18 @@
 
 <div id="controls">
   <select id="groupSelect"></select>
-  <button id="spinButton">Spin</button>
   <label>
     <input type="checkbox" id="allowRepeats"> Allow repeats
   </label>
-  <button id="increaseFont">Increase Font</button>
-  <button id="decreaseFont">Decrease Font</button>
+  <div id="fontControls">
+    <button id="increaseFont">Increase Font</button>
+    <button id="decreaseFont">Decrease Font</button>
+  </div>
 </div>
 
 <canvas id="wheelCanvas" width="500" height="500"></canvas>
-
-<div>
-  <label for="removedNames">Removed Names (10% chance):</label><br>
-  <textarea id="removedNames" rows="4" cols="40" readonly></textarea>
-</div>
+<!-- Spin button at bottom center of canvas -->
+<button id="spinButton">Spin</button>
 
 <script>
 const groups = {};
@@ -41,7 +59,6 @@ let spinning = false;
 const groupSelect = document.getElementById("groupSelect");
 const wheelCanvas = document.getElementById("wheelCanvas");
 const ctx = wheelCanvas.getContext("2d");
-const removedNamesBox = document.getElementById("removedNames");
 
 const textFiles = {
   "Red 1": "red1.txt",
@@ -115,30 +132,21 @@ function drawWheel(rotation = 0) {
 
   // Draw fixed arrow at top
   ctx.beginPath();
-  ctx.moveTo(250, 20);
-  ctx.lineTo(240, 0);
-  ctx.lineTo(260, 0);
+  ctx.moveTo(250, 0);
+  ctx.lineTo(240, 20);
+  ctx.lineTo(260, 20);
   ctx.fillStyle = "red";
   ctx.fill();
 }
 
-// Compute the index under top arrow
-function getTopIndex() {
-  if (currentNames.length === 0) return null;
-  const angleStep = (2 * Math.PI) / currentNames.length;
-  const normalized = currentRotation % (2 * Math.PI);
-  const topIndex = Math.floor((2 * Math.PI - normalized) / angleStep) % currentNames.length;
-  return topIndex;
-}
-
-// Spin button: animate wheel with slow down and 10% removal
+// Spin button: animate wheel with slow-down easing
 document.getElementById("spinButton").addEventListener("click", () => {
   if (spinning || currentNames.length === 0) return;
   spinning = true;
 
   const spins = 5 + Math.random() * 3; // random rotations
   const targetRotation = currentRotation + spins * 2 * Math.PI;
-  const duration = 4000; // slower spin duration
+  const duration = 4000; // slower spin
   const startRotation = currentRotation;
   const startTime = performance.now();
 
@@ -152,15 +160,6 @@ document.getElementById("spinButton").addEventListener("click", () => {
     } else {
       currentRotation = targetRotation;
       drawWheel(currentRotation);
-
-      // 10% chance to remove top name
-      const topIndex = getTopIndex();
-      if (topIndex !== null && Math.random() <= 0.1) {
-        const removedName = currentNames.splice(topIndex, 1)[0];
-        removedNamesBox.value += removedName + "\n";
-      }
-
-      drawWheel(currentRotation); // redraw after removal
       spinning = false;
     }
   }
@@ -182,4 +181,3 @@ init();
 </script>
 </body>
 </html>
-
