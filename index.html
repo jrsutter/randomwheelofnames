@@ -148,7 +148,7 @@ document.getElementById("spinButton").addEventListener("click", () => {
   if (spinning || currentNames.length === 0) return;
   spinning = true;
 
-  const spins = 5 + Math.random() * 3;   // 5 to 8 full rotations
+  const spins = 2 + Math.random() * 3;   // 2 to 5 full rotations
   const targetRotation = currentRotation + spins * 2 * Math.PI;
 
   // Randomize duration between 3 and 4 seconds
