@@ -73,9 +73,9 @@ const textFiles = {
   "Green 7": "green7.txt"
 };
 
-// Load names from text files
+// Load names from text files (with cache-busting)
 async function loadText(file) {
-  const res = await fetch(file);
+  const res = await fetch(file + "?v=" + Date.now()); // force fresh load
   const text = await res.text();
   return text.split(/\r?\n/).map(n => n.trim()).filter(n => n.length > 0);
 }
@@ -148,9 +148,12 @@ document.getElementById("spinButton").addEventListener("click", () => {
   if (spinning || currentNames.length === 0) return;
   spinning = true;
 
-  const spins = 5 + Math.random() * 3;
+  const spins = 5 + Math.random() * 3;   // 5 to 8 full rotations
   const targetRotation = currentRotation + spins * 2 * Math.PI;
-  const duration = 4000;
+
+  // Randomize duration between 3 and 4 seconds
+  const duration = 3000 + Math.random() * 1000;
+
   const startRotation = currentRotation;
   const startTime = performance.now();
 
